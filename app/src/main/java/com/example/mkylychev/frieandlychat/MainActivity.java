@@ -120,6 +120,42 @@ public class MainActivity extends AppCompatActivity {
                 mMessageEditText.setText("");
             }
         });
+
+        mAuthStateListener=new FirebaseAuth.AuthStateListener() {
+            @Override
+            public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
+                FirebaseUser user=firebaseAuth.getCurrentUser();
+                if(user!=null){
+                    onSignedInInitialize(user.getDisplayName());
+                }else {
+                    onSignedOutCleanup();
+                    startActivityForResult(
+                            AuthUI.getInstance()
+                            .createSignInIntentBuilder()
+                                    .setIsSmartLockEnabled(false)
+                            .setProviders(AuthUI.EMAIL_PROVIDER,
+                                          AuthUI.GOOGLE_PROVIDER,
+                                          AuthUI.FACEBOOK_PROVIDER)
+                            .build(),RC_SIGN_IN);
+
+                }
+            }
+        };
+    }
+
+    private void onSignedInInitialize(String displayName) {
+        mUsername=displayName;
+        attachDatabaseReadListener();
+    }
+
+    private void onSignedOutCleanup() {
+        mUsername=ANONYMOUS;
+        mMessageAdapter.clear();
+        detachDatabaseReadListener();
+    }
+
+    private void attachDatabaseReadListener(){
+        if(mChildEventListener==null){
         mChildEventListener=new ChildEventListener() {
             @Override
             public void onChildAdded(DataSnapshot dataSnapshot, String s) {
@@ -148,26 +184,15 @@ public class MainActivity extends AppCompatActivity {
             }
         };
         mMessagesDatabaseReference.addChildEventListener(mChildEventListener);
-        mAuthStateListener=new FirebaseAuth.AuthStateListener() {
-            @Override
-            public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
-                FirebaseUser user=firebaseAuth.getCurrentUser();
-                if(user!=null){
-                    Toast.makeText(MainActivity.this,"You're now signed in. Welcome to FriendlyChat",Toast.LENGTH_SHORT).show();
-                }else {
-                    startActivityForResult(
-                            AuthUI.getInstance()
-                            .createSignInIntentBuilder()
-                                    .setIsSmartLockEnabled(false)
-                            .setProviders(AuthUI.EMAIL_PROVIDER,
-                                          AuthUI.GOOGLE_PROVIDER,
-                                          AuthUI.FACEBOOK_PROVIDER)
-                            .build(),RC_SIGN_IN);
-
-                }
-            }
-        };
+        }
     }
+    private void detachDatabaseReadListener(){
+        if(mChildEventListener!=null){
+            mMessagesDatabaseReference.removeEventListener(mChildEventListener);
+            mChildEventListener=null;
+        }
+    }
+
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -184,7 +209,11 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        mFirebaseAuth.removeAuthStateListener(mAuthStateListener);
+        if(mAuthStateListener!=null){
+            mFirebaseAuth.removeAuthStateListener(mAuthStateListener);
+        }
+        detachDatabaseReadListener();
+        mMessageAdapter.clear();
     }
 
     @Override
