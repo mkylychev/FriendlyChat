@@ -1,5 +1,6 @@
 package com.example.mkylychev.frieandlychat;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
@@ -141,6 +142,19 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         };
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if(requestCode==RC_SIGN_IN){
+            if(resultCode==RESULT_OK){
+                Toast.makeText(this,"Sign in",Toast.LENGTH_SHORT).show();
+            }else if(resultCode==RESULT_CANCELED){
+                Toast.makeText(this,"Sign in canceled",Toast.LENGTH_SHORT).show();
+                finish();
+            }
+        }
     }
 
     private void onSignedInInitialize(String displayName) {
